@@ -37,7 +37,7 @@ func (*controller) PostCSVFile(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	result, err := csvService.ConvertCsvToJson(file)
+	result, err := csvService.ReadCsvFile(file)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(resp).Encode(errors.ErrorMessage{Message: err.Error()})
