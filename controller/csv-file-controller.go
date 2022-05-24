@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"net/http"
 
@@ -38,15 +37,7 @@ func (*controller) PostCSVFile(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	csvReader := csv.NewReader(file)
-	data, csvFile := csvReader.ReadAll()
-	if csvFile != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(errors.ErrorMessage{Message: csvFile.Error()})
-		return
-	}
-
-	result, err := csvService.ConvertCsvToJson(data)
+	result, err := csvService.ConvertCsvToJson(file)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(resp).Encode(errors.ErrorMessage{Message: err.Error()})

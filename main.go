@@ -12,11 +12,10 @@ import (
 var (
 	r                 router.Router                = router.NewRouter()
 	csvFileController controller.CSVFileController = controller.NewCsvController(service.NewCsvService())
+	port              string                       = ":8080"
 )
 
 func main() {
-	const port string = ":8080"
-
 	r.GET("/", func(resp http.ResponseWriter, req *http.Request) {
 		fmt.Fprintln(resp, "Up and running...")
 	})
