@@ -1,13 +1,16 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
+	"github.com/go-resty/resty/v2"
 )
 
 type CsvService interface {
 	ConvertCsvToJson(data [][]string) ([]*entity.CSV, error)
+	RequestRickAndMortyCharacters() (*entity.ResponseBody, error)
 }
 type service struct{}
 
@@ -36,4 +39,20 @@ func (*service) ConvertCsvToJson(data [][]string) ([]*entity.CSV, error) {
 		csvData = append(csvData, rec)
 	}
 	return csvData, nil
+}
+
+func (*service) RequestRickAndMortyCharacters() (*entity.ResponseBody, error) {
+	client := resty.New()
+	resp, err := client.R().Get("https://rickandmortyapi.com/api/character")
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+
+	responseBody := entity.ResponseBody{}
+	err = json.Unmarshal(resp.Body(), &responseBody)
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+
+	return &responseBody, nil
 }

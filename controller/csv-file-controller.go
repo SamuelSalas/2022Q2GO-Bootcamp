@@ -11,6 +11,7 @@ import (
 
 type CSVFileController interface {
 	PostCSVFile(resp http.ResponseWriter, req *http.Request)
+	GetRickAndMortyCharactersCsv(resp http.ResponseWriter, req *http.Request)
 }
 
 type controller struct{}
@@ -54,6 +55,19 @@ func (*controller) PostCSVFile(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	resp.Header().Set("Content-type", "application/json")
+	resp.WriteHeader(http.StatusOK)
+	json.NewEncoder(resp).Encode(result)
+}
+
+func (*controller) GetRickAndMortyCharactersCsv(resp http.ResponseWriter, req *http.Request) {
+	resp.Header().Set("Content-Type", "application/json")
+	result, err := csvService.RequestRickAndMortyCharacters()
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(resp).Encode(errors.ErrorMessage{Message: err.Error()})
+		return
+	}
+
 	resp.WriteHeader(http.StatusOK)
 	json.NewEncoder(resp).Encode(result)
 }

@@ -20,6 +20,7 @@ func main() {
 	r.GET("/", func(resp http.ResponseWriter, req *http.Request) {
 		fmt.Fprintln(resp, "Up and running...")
 	})
+	r.GET("/charactersCsv", csvFileController.GetRickAndMortyCharactersCsv)
 	r.POST("/sendCSVFile", csvFileController.PostCSVFile)
 	r.SERVER(port)
 }
