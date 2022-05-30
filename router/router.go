@@ -4,32 +4,17 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-chi/chi"
+	"github.com/SamuelSalas/2022Q2GO-Bootcamp/controller"
+	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
+	"github.com/SamuelSalas/2022Q2GO-Bootcamp/service"
+	"github.com/gorilla/mux"
 )
 
-type Router interface {
-	GET(uri string, f func(http.ResponseWriter, *http.Request))
-	POST(uri string, f func(http.ResponseWriter, *http.Request))
-	SERVER(port string)
-}
-
-type router struct{}
-
-var dispatcher = chi.NewRouter()
-
-func NewRouter() Router {
-	return &router{}
-}
-
-func (*router) GET(uri string, f func(http.ResponseWriter, *http.Request)) {
-	dispatcher.Get(uri, f)
-}
-
-func (*router) POST(uri string, f func(http.ResponseWriter, *http.Request)) {
-	dispatcher.Post(uri, f)
-}
-
-func (*router) SERVER(port string) {
-	fmt.Printf("Chi HTTP Server running on port: %v", port)
-	http.ListenAndServe(port, dispatcher)
+func Router(router *mux.Router) {
+	csvController := controller.NewCsvController(service.NewCsvService(repository.NewCharacterClientRepository()))
+	router.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
+		fmt.Fprintln(resp, "Up and running...")
+	}).Methods("GET")
+	router.HandleFunc("/generateCsv", csvController.GetRickAndMortyCharactersCsv).Methods("GET")
+	router.HandleFunc("/sendCSVFile", csvController.PostCSVFile).Methods("POST")
 }

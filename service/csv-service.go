@@ -1,58 +1,55 @@
 package service
 
 import (
-	"encoding/json"
-	"fmt"
+	"encoding/csv"
+	"os"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
-	"github.com/go-resty/resty/v2"
+	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
+	. "github.com/SamuelSalas/2022Q2GO-Bootcamp/utils"
 )
 
 type CsvService interface {
-	ConvertCsvToJson(data [][]string) ([]*entity.CSV, error)
-	RequestRickAndMortyCharacters() (*entity.ResponseBody, error)
+	ReadCsvFile(file *os.File) (*[]entity.Character, error)
+	RequestRickAndMortyCharacters() error
 }
-type service struct{}
-
-func NewCsvService() CsvService {
-	return &service{}
+type csvService struct {
+	repo repository.CharacterClientRepository
 }
 
-func (*service) ConvertCsvToJson(data [][]string) ([]*entity.CSV, error) {
+func NewCsvService(repository repository.CharacterClientRepository) CsvService {
+	return &csvService{repository}
+}
+
+func (*csvService) ReadCsvFile(file *os.File) (*[]entity.Character, error) {
+	csvReader := csv.NewReader(file)
+	data, err := csvReader.ReadAll()
+	if err != nil {
+		return nil, repository.ErrorCsvReader
+	}
+
 	if len(data) == 0 {
-		return nil, fmt.Errorf("empty file")
+		return nil, repository.ErrorCsvEmpty
 	}
 
-	var csvData []*entity.CSV
-
-	for _, line := range data {
-		columns := len(line)
-		if columns != 2 {
-			return nil, fmt.Errorf("invalid column number: %d", columns)
-		}
-
-		var rec *entity.CSV = &entity.CSV{
-			ID:    line[0],
-			Items: line[1],
-		}
-
-		csvData = append(csvData, rec)
+	csvData, err := ConvertToJson(data)
+	if err != nil {
+		return nil, err
 	}
-	return csvData, nil
+
+	return &csvData, nil
 }
 
-func (*service) RequestRickAndMortyCharacters() (*entity.ResponseBody, error) {
-	client := resty.New()
-	resp, err := client.R().Get("https://rickandmortyapi.com/api/character")
+func (c *csvService) RequestRickAndMortyCharacters() error {
+	result, err := c.repo.FindCharacters()
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return err
 	}
 
-	responseBody := entity.ResponseBody{}
-	err = json.Unmarshal(resp.Body(), &responseBody)
+	err = GenerateCsv(&result.Results)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return err
 	}
 
-	return &responseBody, nil
+	return nil
 }
