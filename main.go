@@ -4,14 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SamuelSalas/2022Q2GO-Bootcamp/controller"
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/router"
-	"github.com/SamuelSalas/2022Q2GO-Bootcamp/service"
-)
-
-var (
-	r                 router.Router                = router.NewRouter()
-	csvFileController controller.CSVFileController = controller.NewCsvController(service.NewCsvService())
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -19,9 +13,8 @@ const (
 )
 
 func main() {
-	r.GET("/", func(resp http.ResponseWriter, req *http.Request) {
-		fmt.Fprintln(resp, "Up and running...")
-	})
-	r.POST("/sendCSVFile", csvFileController.PostCSVFile)
-	r.SERVER(port)
+	r := mux.NewRouter()
+	router.Router(r)
+	fmt.Printf("Mux HTTP Server running on port: %v", port)
+	http.ListenAndServe(port, r)
 }
