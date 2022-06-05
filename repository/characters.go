@@ -2,6 +2,7 @@ package repository
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
 	"github.com/go-resty/resty/v2"
@@ -25,8 +26,9 @@ func (c *repo) FindCharacters() (*entity.ResponseBody, error) {
 	}
 
 	responseBody := entity.ResponseBody{}
-	err = json.Unmarshal(resp.Body(), &responseBody)
+	err = json.Unmarshal([]byte(resp.Body()), &responseBody)
 	if err != nil {
+		fmt.Println(err.Error())
 		return nil, ErrorConvertingToJSON
 	}
 

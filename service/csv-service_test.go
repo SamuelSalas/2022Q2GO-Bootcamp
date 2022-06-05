@@ -21,61 +21,75 @@ func (m *csvServiceMock) FindCharacters() (*entity.ResponseBody, error) {
 	return args.Get(0).(*entity.ResponseBody), args.Error(1)
 }
 
+var fileName = "result.csv"
+
 func TestCsvService_ReadCsvFile(t *testing.T) {
-	tmpFile, _ := os.Open(CreateTempFile(TestCharacters))
-	os.Remove(tmpFile.Name())
-	dataExpected, _ := ConvertToJson(TestCharacters)
-	csvServiceImpl := NewCsvService(nil)
-	result, err := csvServiceImpl.ReadCsvFile(tmpFile)
-	assert.Equal(t, &dataExpected, result)
-	assert.Nil(t, err)
-}
-
-func TestCsvService_ReadCsvFile_EmptyFile(t *testing.T) {
-	tmpFile, _ := os.Open(CreateTempFile(nil))
-	os.Remove(tmpFile.Name())
-	csvServiceImpl := NewCsvService(nil)
-	result, err := csvServiceImpl.ReadCsvFile(tmpFile)
-	assert.Empty(t, result)
-	assert.EqualError(t, err, repository.ErrorCsvEmpty.Error())
-}
-
-func TestCsvService_ReadCsvFile_InvalidColumnNumber(t *testing.T) {
-	testData := TestCharacters
-	for i, character := range testData {
-		testData[i] = append(character, "extra info")
+	tests := []struct {
+		testName       string
+		expectedResult *entity.ResponseBody
+		testData       [][]string
+		errorResponse  error
+	}{
+		{
+			testName:       "Happy Path",
+			expectedResult: &ExpectedResult,
+			testData:       DataCharacters,
+			errorResponse:  nil,
+		},
+		{
+			testName:       "Empty File",
+			expectedResult: nil,
+			testData:       [][]string{},
+			errorResponse:  repository.ErrorCsvEmpty,
+		},
+		{
+			testName:       "Invalid Column",
+			expectedResult: nil,
+			testData:       append(DataCharacters, []string{"extra info"}),
+			errorResponse:  repository.ErrorCsvInvalidColumnNumber,
+		},
 	}
 
-	tmpFile, _ := os.Open(CreateTempFile(TestCharacters))
-	os.Remove(tmpFile.Name())
-	csvServiceImpl := NewCsvService(nil)
-	result, err := csvServiceImpl.ReadCsvFile(tmpFile)
-	assert.Empty(t, result)
-	assert.EqualError(t, err, repository.ErrorCsvInvalidColumnNumber.Error())
-}
-
-func TestCsvService_ReadCsvFile_InvalidField(t *testing.T) {
-	d := len(TestCharacters)
-	testData := TestCharacters
-	testData[d-1] = append(testData[d-1], "s")
-	tmpFile, _ := os.Open(CreateTempFile(TestCharacters))
-	os.Remove(tmpFile.Name())
-	csvServiceImpl := NewCsvService(nil)
-	result, err := csvServiceImpl.ReadCsvFile(tmpFile)
-	assert.Empty(t, result)
-	assert.EqualError(t, err, repository.ErrorCsvReader.Error())
-}
-
-func TestCsvService_RequestRickAndMortyCharacters(t *testing.T) {
-	defer os.Remove("result.csv")
-	csvServiceMockImpl := csvServiceMock{}
-	characters, _ := ConvertToJson(TestCharacters)
-	dataExpected := entity.ResponseBody{
-		Results: characters,
-		Info:    InfoData,
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			csvServiceImpl := NewCsvService(nil)
+			result, err := csvServiceImpl.ReadCsvData(test.testData)
+			assert.Equal(t, *&test.expectedResult, result)
+			assert.Equal(t, err, test.errorResponse)
+		})
 	}
-	csvServiceMockImpl.On("FindCharacters").Return(&dataExpected, nil)
-	csvServiceImpl := NewCsvService(&csvServiceMockImpl)
-	err := csvServiceImpl.RequestRickAndMortyCharacters()
-	assert.Nil(t, err)
+}
+
+func TestCsvService_RequestRickAndMortyCharacters_TestTable(t *testing.T) {
+	tests := []struct {
+		testName       string
+		expectedResult *entity.ResponseBody
+		errorResponse  error
+		fileExists     bool
+	}{
+		{
+			testName:       "Happy Path",
+			expectedResult: &ExpectedResult,
+			errorResponse:  nil,
+			fileExists:     true,
+		},
+		{
+			testName:       "Unable to Connect to API",
+			expectedResult: nil,
+			errorResponse:  repository.ErrorConnectingApi,
+			fileExists:     false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			defer os.Remove(fileName)
+			csvServiceMockImpl := csvServiceMock{}
+			csvServiceMockImpl.On("FindCharacters").Return(test.expectedResult, test.errorResponse)
+			csvServiceImpl := NewCsvService(&csvServiceMockImpl)
+			err := csvServiceImpl.RequestRickAndMortyCharacters()
+			isFileExists := FileExists(fileName)
+			assert.Equal(t, err, test.errorResponse)
+			assert.Equal(t, isFileExists, test.fileExists)
+		})
+	}
 }

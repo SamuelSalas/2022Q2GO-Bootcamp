@@ -1,9 +1,9 @@
 package controller
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/service"
@@ -25,7 +25,7 @@ func NewCsvController(service service.CsvService) CSVController {
 
 func (*controller) PostCSVFile(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Set("Content-type", "application/json")
-	_, fileHeader, err := req.FormFile("csv")
+	file, fileHeader, err := req.FormFile("csv")
 
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -39,8 +39,15 @@ func (*controller) PostCSVFile(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	file, err := os.Open(fileHeader.Filename)
-	result, err := csvService.ReadCsvFile(file)
+	csvReader := csv.NewReader(file)
+	data, err := csvReader.ReadAll()
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(resp).Encode(entity.Message{Message: err.Error()})
+		return
+	}
+
+	result, err := csvService.ReadCsvData(data)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(resp).Encode(entity.Message{Message: err.Error()})
@@ -49,7 +56,7 @@ func (*controller) PostCSVFile(resp http.ResponseWriter, req *http.Request) {
 
 	resp.Header().Set("Content-type", "application/json")
 	resp.WriteHeader(http.StatusOK)
-	json.NewEncoder(resp).Encode(result)
+	json.NewEncoder(resp).Encode(result.Results)
 }
 
 func (*controller) GetRickAndMortyCharactersCsv(resp http.ResponseWriter, req *http.Request) {

@@ -1,8 +1,7 @@
 package service
 
 import (
-	"encoding/csv"
-	"os"
+	"strconv"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
@@ -10,7 +9,7 @@ import (
 )
 
 type CsvService interface {
-	ReadCsvFile(file *os.File) (*[]entity.Character, error)
+	ReadCsvData(data [][]string) (*entity.ResponseBody, error)
 	RequestRickAndMortyCharacters() error
 }
 type csvService struct {
@@ -21,23 +20,28 @@ func NewCsvService(repository repository.CharacterClientRepository) CsvService {
 	return &csvService{repository}
 }
 
-func (*csvService) ReadCsvFile(file *os.File) (*[]entity.Character, error) {
-	csvReader := csv.NewReader(file)
-	data, err := csvReader.ReadAll()
-	if err != nil {
-		return nil, repository.ErrorCsvReader
-	}
-
+func (*csvService) ReadCsvData(data [][]string) (*entity.ResponseBody, error) {
+	responseBody := entity.ResponseBody{}
 	if len(data) == 0 {
 		return nil, repository.ErrorCsvEmpty
 	}
 
-	csvData, err := ConvertToJson(data)
-	if err != nil {
-		return nil, err
-	}
+	for _, line := range data {
+		if len(line) != 7 {
+			return nil, repository.ErrorCsvInvalidColumnNumber
+		}
 
-	return &csvData, nil
+		var rec entity.Character = entity.Character{}
+		rec.ID, _ = strconv.Atoi(line[0])
+		rec.Name = line[1]
+		rec.Status = line[2]
+		rec.Gender = line[3]
+		rec.Image = line[4]
+		rec.Url = line[5]
+		rec.Created = line[6]
+		responseBody.Results = append(responseBody.Results, rec)
+	}
+	return &responseBody, nil
 }
 
 func (c *csvService) RequestRickAndMortyCharacters() error {
