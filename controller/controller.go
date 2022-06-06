@@ -9,6 +9,7 @@ import (
 type CSVController interface {
 	PostCSVFile(resp http.ResponseWriter, req *http.Request)
 	GetApiDataCsv(resp http.ResponseWriter, req *http.Request)
+	PostWorkerPoolCSVFile(resp http.ResponseWriter, req *http.Request)
 }
 
 type controller struct{}

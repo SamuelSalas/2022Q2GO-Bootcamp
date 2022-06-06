@@ -11,4 +11,6 @@ var (
 	ErrorConvertingToJSON       = errors.New("error converting results to json")
 	ErrorFileWasNotFound        = errors.New("file was not found")
 	ErrorInvalidFileType        = errors.New("invalid file type")
+	ErrorParameterNotFound      = errors.New("parameter not found")
+	ErrorInvalidValueType       = errors.New("invalid value type")
 )
