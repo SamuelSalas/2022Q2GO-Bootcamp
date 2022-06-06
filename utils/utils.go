@@ -2,41 +2,25 @@ package utils
 
 import (
 	"encoding/csv"
-	"os"
-	"strconv"
+	"mime/multipart"
 
-	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
 )
 
-func GenerateCsv(characters *[]entity.Character) error {
-	file, err := os.Create("result.csv")
+func ValidateFile(file multipart.File, fileHeader *multipart.FileHeader, err error) ([][]string, error) {
+	data := [][]string{}
 	if err != nil {
-		return repository.ErrorCsvCreation
+		return data, repository.ErrorFileWasNotFound
 	}
-	defer file.Close()
 
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	for _, character := range *characters {
-		var row []string
-		row = append(row, strconv.Itoa(character.ID))
-		row = append(row, character.Name)
-		row = append(row, character.Status)
-		row = append(row, character.Gender)
-		row = append(row, character.Image)
-		row = append(row, character.Url)
-		row = append(row, character.Created)
-		writer.Write(row)
+	if fileHeader.Header.Get("Content-Type") != "text/csv" {
+		return data, repository.ErrorInvalidFileType
 	}
-	return nil
-}
 
-func FileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
+	csvReader := csv.NewReader(file)
+	data, err = csvReader.ReadAll()
+	if err != nil {
+		return data, repository.ErrorCsvReader
 	}
-	return !info.IsDir()
+	return data, nil
 }

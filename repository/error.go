@@ -9,4 +9,6 @@ var (
 	ErrorCsvEmpty               = errors.New("empty csv")
 	ErrorConnectingApi          = errors.New("error connecting api")
 	ErrorConvertingToJSON       = errors.New("error converting results to json")
+	ErrorFileWasNotFound        = errors.New("file was not found")
+	ErrorInvalidFileType        = errors.New("invalid file type")
 )

@@ -5,20 +5,7 @@ import (
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
-	. "github.com/SamuelSalas/2022Q2GO-Bootcamp/utils"
 )
-
-type CsvService interface {
-	ReadCsvData(data [][]string) (*entity.ResponseBody, error)
-	RequestRickAndMortyCharacters() error
-}
-type csvService struct {
-	repo repository.CharacterClientRepository
-}
-
-func NewCsvService(repository repository.CharacterClientRepository) CsvService {
-	return &csvService{repository}
-}
 
 func (*csvService) ReadCsvData(data [][]string) (*entity.ResponseBody, error) {
 	responseBody := entity.ResponseBody{}
@@ -42,18 +29,4 @@ func (*csvService) ReadCsvData(data [][]string) (*entity.ResponseBody, error) {
 		responseBody.Results = append(responseBody.Results, rec)
 	}
 	return &responseBody, nil
-}
-
-func (c *csvService) RequestRickAndMortyCharacters() error {
-	result, err := c.repo.FindCharacters()
-	if err != nil {
-		return err
-	}
-
-	err = GenerateCsv(&result.Results)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

@@ -26,7 +26,7 @@ func (c *repo) FindCharacters() (*entity.ResponseBody, error) {
 	}
 
 	responseBody := entity.ResponseBody{}
-	err = json.Unmarshal([]byte(resp.Body()), &responseBody)
+	err = json.Unmarshal(resp.Body(), &responseBody)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, ErrorConvertingToJSON
