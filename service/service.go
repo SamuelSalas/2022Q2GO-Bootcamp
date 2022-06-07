@@ -8,7 +8,7 @@ import (
 type CsvService interface {
 	ReadCsvData(data [][]string) (*entity.ResponseBody, error)
 	GenerateCsv() error
-	ReadCsvWorkerPool(data [][]string, items, items_per_workers int) (*entity.ResponseBody, error)
+	ReadCsvWorkerPool(data [][]string, idType string, items, items_per_workers int) (*entity.ResponseBody, error)
 }
 type csvService struct {
 	repo repository.CharacterClientRepository

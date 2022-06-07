@@ -13,4 +13,5 @@ var (
 	ErrorInvalidFileType        = errors.New("invalid file type")
 	ErrorParameterNotFound      = errors.New("parameter not found")
 	ErrorInvalidValueType       = errors.New("invalid value type")
+	ErrorInvalidIdType          = errors.New("invalid id type")
 )

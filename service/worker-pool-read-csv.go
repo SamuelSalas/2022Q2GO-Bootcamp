@@ -1,7 +1,7 @@
 package service
 
 import (
-	"fmt"
+	"context"
 	"strconv"
 	"sync"
 
@@ -9,100 +9,136 @@ import (
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
 )
 
-type WorkFunc interface {
-	Run()
+type Result struct {
+	Character entity.Character
+	Err       error
 }
 
-type GoroutinePool struct {
-	queue chan work
-	wg    sync.WaitGroup
+type Job struct {
+	ID     int
+	ExecFn func(ctx context.Context, workerId int, csvRow [][]string) (entity.Character, error)
+	Args   [][]string
 }
 
-type work struct {
-	fn WorkFunc
+type WorkerPool struct {
+	workersCount int
+	jobs         chan Job
+	results      chan Result
+	Done         chan struct{}
 }
 
-func NewGoroutinePool(workerSize, itemsPerWorkers int) *GoroutinePool {
-	gp := &GoroutinePool{
-		queue: make(chan work),
-	}
-
-	gp.AddWorkers(workerSize, itemsPerWorkers)
-	return gp
-}
-
-func (gp *GoroutinePool) Close() {
-	close(gp.queue)
-	gp.wg.Wait()
-}
-
-func (gp *GoroutinePool) ScheduleWork(fn WorkFunc) {
-	gp.queue <- work{fn}
-}
-
-func (gp *GoroutinePool) AddWorkers(numWorkers, itemsWorker int) {
-	gp.wg.Add(numWorkers)
-
-	for i := 0; i < numWorkers; i++ {
-		go func(workerId int) {
-			count := 0
-			for job := range gp.queue {
-				job.fn.Run()
-				count++
-			}
-			fmt.Println(fmt.Sprintf("Worker %d executed %d tasks", workerId, count))
-			gp.wg.Done()
-		}(i)
+func NewWorkerPool(wcount, itemPerWorker int) WorkerPool {
+	return WorkerPool{
+		workersCount: wcount,
+		jobs:         make(chan Job, itemPerWorker),
+		results:      make(chan Result, itemPerWorker),
+		Done:         make(chan struct{}),
 	}
 }
 
-type testTask struct {
-	CsvLine       int
-	TaskProcessor func(...interface{})
-}
-
-func (t testTask) Run() {
-	t.TaskProcessor(t.CsvLine)
-}
-
-func (c *csvService) ReadCsvWorkerPool(data [][]string, items, itemsWorkerLimit int) (*entity.ResponseBody, error) {
-	responseBody := entity.ResponseBody{}
-	if len(data) == 0 {
-		return nil, repository.ErrorCsvEmpty
-	}
-
-	pool := NewGoroutinePool(5, itemsWorkerLimit)
-	taskSize := items
-
-	wg := &sync.WaitGroup{}
-	wg.Add(taskSize)
-	sampleStringTaskFn := func(dm ...interface{}) {
-		if row, ok := dm[0].(int); ok {
-			var rec entity.Character = entity.Character{}
-			rec.ID, _ = strconv.Atoi(data[row][0])
-			rec.Name = data[row][1]
-			rec.Status = data[row][2]
-			rec.Gender = data[row][3]
-			rec.Image = data[row][4]
-			rec.Url = data[row][5]
-			rec.Created = data[row][6]
-			responseBody.Results = append(responseBody.Results, rec)
-			wg.Done()
+func (j Job) execute(ctx context.Context) Result {
+	value, err := j.ExecFn(ctx, j.ID, j.Args)
+	if err != nil {
+		return Result{
+			Err: err,
 		}
 	}
 
-	var tasks []testTask
-	for v := 0; v < taskSize; v++ {
-		tasks = append(tasks, testTask{
-			CsvLine:       v,
-			TaskProcessor: sampleStringTaskFn,
-		})
+	return Result{
+		Character: value,
+	}
+}
+
+func worker(ctx context.Context, wg *sync.WaitGroup, jobs <-chan Job, results chan<- Result) {
+	defer wg.Done()
+	for {
+		select {
+		case job, ok := <-jobs:
+			if !ok {
+				return
+			}
+			results <- job.execute(ctx)
+		case <-ctx.Done():
+			results <- Result{
+				Err: ctx.Err(),
+			}
+			return
+		}
+	}
+}
+
+func (wp WorkerPool) Run(ctx context.Context) {
+	var wg sync.WaitGroup
+	for i := 0; i < wp.workersCount; i++ {
+		wg.Add(1)
+		go worker(ctx, &wg, wp.jobs, wp.results)
 	}
 
-	for _, task := range tasks {
-		pool.ScheduleWork(task)
-	}
-	pool.Close()
 	wg.Wait()
-	return &responseBody, nil
+	close(wp.Done)
+	close(wp.results)
+}
+
+func (wp WorkerPool) Results() <-chan Result {
+	return wp.results
+}
+
+func (wp WorkerPool) GenerateFrom(jobsBulk []Job) {
+	for i := range jobsBulk {
+		wp.jobs <- jobsBulk[i]
+	}
+	close(wp.jobs)
+}
+
+func testJobs(poolSize int, data [][]string) []Job {
+	jobs := make([]Job, poolSize)
+	for i := 0; i < poolSize; i++ {
+		jobs[i] = Job{
+			ID:     i,
+			ExecFn: execFn,
+			Args:   data,
+		}
+	}
+	return jobs
+}
+
+func execFn(ctx context.Context, workerId int, csvRow [][]string) (entity.Character, error) {
+	if workerId == 0 {
+
+	}
+	result := entity.Character{}
+	var err error
+	result.ID, _ = strconv.Atoi(csvRow[workerId][0])
+	result.Name = csvRow[workerId][1]
+	result.Status = csvRow[workerId][2]
+	result.Gender = csvRow[workerId][3]
+	result.Image = csvRow[workerId][4]
+	result.Url = csvRow[workerId][5]
+	result.Created = csvRow[workerId][6]
+	return result, err
+}
+
+func (c *csvService) ReadCsvWorkerPool(data [][]string, idType string, items, itemsWorkerLimit int) (*entity.ResponseBody, error) {
+	var wg sync.WaitGroup
+	var err error
+	responseBody := &entity.ResponseBody{}
+	if len(data) == 0 {
+		err = repository.ErrorCsvEmpty
+		return responseBody, err
+	}
+
+	wp := NewWorkerPool(5, itemsWorkerLimit)
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+	go wp.GenerateFrom(testJobs(items, data))
+	go wp.Run(ctx)
+
+	select {
+	case r, _ := <-wp.Results():
+		responseBody.Results = append(responseBody.Results, r.Character)
+	case <-wp.Done:
+		return responseBody, err
+	default:
+	}
+	return responseBody, err
 }

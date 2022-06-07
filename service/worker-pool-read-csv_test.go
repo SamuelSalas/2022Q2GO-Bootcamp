@@ -12,6 +12,7 @@ func TestCsvService_WorkerPoolReadCsv(t *testing.T) {
 	tests := []struct {
 		testName         string
 		testData         [][]string
+		idType           string
 		items            int
 		itemsWorkerLimit int
 		errorResponse    error
@@ -19,7 +20,8 @@ func TestCsvService_WorkerPoolReadCsv(t *testing.T) {
 		{
 			testName:         "Only Valid Items",
 			testData:         DataCharacters,
-			items:            16,
+			idType:           "odd",
+			items:            10,
 			itemsWorkerLimit: 10,
 			errorResponse:    nil,
 		},
@@ -28,7 +30,7 @@ func TestCsvService_WorkerPoolReadCsv(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			csvServiceImpl := NewCsvService(nil)
-			results, err := csvServiceImpl.ReadCsvWorkerPool(test.testData, test.items, test.itemsWorkerLimit)
+			results, err := csvServiceImpl.ReadCsvWorkerPool(test.testData, test.idType, test.items, test.itemsWorkerLimit)
 			fmt.Println(results.Results)
 			assert.Equal(t, err, test.errorResponse)
 		})

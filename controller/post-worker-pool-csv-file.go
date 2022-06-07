@@ -46,7 +46,20 @@ func (*controller) PostWorkerPoolCSVFile(resp http.ResponseWriter, req *http.Req
 		return
 	}
 
-	result, err := csvService.ReadCsvWorkerPool(data, items, itemsPerWorker)
+	idTypeParam, ok := req.URL.Query()["id_type"]
+	if !ok || len(idTypeParam[0]) < 1 {
+		resp.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(resp).Encode(entity.Message{Message: repository.ErrorParameterNotFound.Error()})
+		return
+	}
+
+	if idTypeParam[0] != "odd" && idTypeParam[0] != "even" {
+		resp.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(resp).Encode(entity.Message{Message: repository.ErrorInvalidIdType.Error()})
+		return
+	}
+
+	result, err := csvService.ReadCsvWorkerPool(data, idTypeParam[0], items, itemsPerWorker)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(resp).Encode(entity.Message{Message: err.Error()})
