@@ -9,7 +9,7 @@ import (
 type CSVController interface {
 	GetCSVFileData(resp http.ResponseWriter, req *http.Request)
 	GetApiDataCsv(resp http.ResponseWriter, req *http.Request)
-	//GetCSVFileDataWorkerPool(resp http.ResponseWriter, req *http.Request)
+	GetCSVFileDataWorkerPool(resp http.ResponseWriter, req *http.Request)
 }
 
 type controller struct {

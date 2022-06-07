@@ -17,5 +17,5 @@ func Router(router *mux.Router) {
 	}).Methods("GET")
 	router.HandleFunc("/generateCsv", csvController.GetApiDataCsv).Methods("GET")
 	router.HandleFunc("/readCsvFile", csvController.GetCSVFileData).Methods("GET")
-	//router.HandleFunc("/readCsvFileWorkerPool", csvController.PostWorkerPoolCSVFile).Methods("GET")
+	router.HandleFunc("/readCsvFileWorkerPool", csvController.GetCSVFileDataWorkerPool).Methods("GET")
 }
