@@ -1,5 +1,6 @@
 package controller
 
+/*
 import (
 	"encoding/json"
 	"net/http"
@@ -9,15 +10,8 @@ import (
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
 )
 
-func (*controller) PostWorkerPoolCSVFile(resp http.ResponseWriter, req *http.Request) {
+func (*controller) GetCSVFileDataWorkerPool(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Set("Content-type", "application/json")
-	data, err := validateFile(req.FormFile("csv"))
-	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: err.Error()})
-		return
-	}
-
 	itemsParam, ok := req.URL.Query()["items"]
 	if !ok || len(itemsParam[0]) < 1 {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -53,13 +47,7 @@ func (*controller) PostWorkerPoolCSVFile(resp http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if idTypeParam[0] != "odd" && idTypeParam[0] != "even" {
-		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: repository.ErrorInvalidIdType.Error()})
-		return
-	}
-
-	result, err := csvService.ReadCsvWorkerPool(data, idTypeParam[0], items, itemsPerWorker)
+	result, err := csvService.ReadCsvWorkerPool(idTypeParam[0], items, itemsPerWorker)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(resp).Encode(entity.Message{Message: err.Error()})
@@ -70,3 +58,4 @@ func (*controller) PostWorkerPoolCSVFile(resp http.ResponseWriter, req *http.Req
 	resp.WriteHeader(http.StatusOK)
 	json.NewEncoder(resp).Encode(result.Results)
 }
+*/

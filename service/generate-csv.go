@@ -6,34 +6,34 @@ import (
 	"strconv"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
-	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
+	"github.com/SamuelSalas/2022Q2GO-Bootcamp/err"
 )
 
-func (c *csvService) GenerateCsv() error {
-	result, err := c.repo.FindCharacters()
-	if err != nil {
-		return err
+func (s *csvService) GenerateCsv() (*entity.ResponseBody, error) {
+	result, errs := s.csvRepo.FindCharacters()
+	if errs != nil {
+		return nil, errs
 	}
 
-	err = structToCsv(&result.Results)
-	if err != nil {
-		return err
+	errs = structToCsv(result.Results)
+	if errs != nil {
+		return nil, errs
 	}
 
-	return nil
+	return result, nil
 }
 
-func structToCsv(characters *[]entity.Character) error {
-	file, err := os.Create("result.csv")
-	if err != nil {
-		return repository.ErrorCsvCreation
+func structToCsv(characters []entity.Character) error {
+	file, errs := os.Create("result.csv")
+	if errs != nil {
+		return err.ErrorCsvCreation
 	}
 	defer file.Close()
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	for _, character := range *characters {
+	for _, character := range characters {
 		var row []string
 		row = append(row, strconv.Itoa(character.ID))
 		row = append(row, character.Name)

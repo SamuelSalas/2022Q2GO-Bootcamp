@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
-	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
+	"github.com/SamuelSalas/2022Q2GO-Bootcamp/err"
 )
 
 type Result struct {
@@ -118,27 +118,29 @@ func execFn(ctx context.Context, workerId int, csvRow [][]string) (entity.Charac
 	return result, err
 }
 
-func (c *csvService) ReadCsvWorkerPool(data [][]string, idType string, items, itemsWorkerLimit int) (*entity.ResponseBody, error) {
-	var wg sync.WaitGroup
-	var err error
-	responseBody := &entity.ResponseBody{}
-	if len(data) == 0 {
-		err = repository.ErrorCsvEmpty
-		return responseBody, err
+func (s *csvService) ReadCsvWorkerPool(idType string, items, itemsWorkerLimit int) (entity.ResponseBody, error) {
+	responseBody := entity.ResponseBody{}
+	data, errs := s.csvRepo.ExtractCsvData()
+	if errs != nil {
+		return responseBody, errs
+	}
+
+	if len(*data) == 0 {
+		return responseBody, err.ErrorCsvEmpty
 	}
 
 	wp := NewWorkerPool(5, itemsWorkerLimit)
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
-	go wp.GenerateFrom(testJobs(items, data))
+	go wp.GenerateFrom(testJobs(items, *data))
 	go wp.Run(ctx)
 
 	select {
 	case r, _ := <-wp.Results():
 		responseBody.Results = append(responseBody.Results, r.Character)
 	case <-wp.Done:
-		return responseBody, err
+		return responseBody, errs
 	default:
 	}
-	return responseBody, err
+	return responseBody, errs
 }

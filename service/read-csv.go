@@ -4,29 +4,31 @@ import (
 	"strconv"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
-	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
+	"github.com/SamuelSalas/2022Q2GO-Bootcamp/err"
 )
 
-func (*csvService) ReadCsvData(data [][]string) (*entity.ResponseBody, error) {
+func (s *csvService) ReadCsvData() (*entity.ResponseBody, error) {
 	responseBody := entity.ResponseBody{}
-	if len(data) == 0 {
-		return nil, repository.ErrorCsvEmpty
+	data, errs := s.csvRepo.ExtractCsvData()
+	if errs != nil {
+		return nil, errs
 	}
 
-	for _, line := range data {
-		if len(line) != 7 {
-			return nil, repository.ErrorCsvInvalidColumnNumber
+	character := entity.Character{}
+	for _, row := range *data {
+		if len(row) != 7 {
+			return nil, err.ErrorCsvInvalidColumnNumber
 		}
 
-		var rec entity.Character = entity.Character{}
-		rec.ID, _ = strconv.Atoi(line[0])
-		rec.Name = line[1]
-		rec.Status = line[2]
-		rec.Gender = line[3]
-		rec.Image = line[4]
-		rec.Url = line[5]
-		rec.Created = line[6]
-		responseBody.Results = append(responseBody.Results, rec)
+		character.ID, _ = strconv.Atoi(row[0])
+		character.Name = row[1]
+		character.Status = row[2]
+		character.Gender = row[3]
+		character.Image = row[4]
+		character.Url = row[5]
+		character.Created = row[6]
+		responseBody.Results = append(responseBody.Results, character)
 	}
+
 	return &responseBody, nil
 }

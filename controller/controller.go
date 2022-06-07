@@ -3,20 +3,27 @@ package controller
 import (
 	"net/http"
 
-	"github.com/SamuelSalas/2022Q2GO-Bootcamp/service"
+	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
 )
 
 type CSVController interface {
-	PostCSVFile(resp http.ResponseWriter, req *http.Request)
+	GetCSVFileData(resp http.ResponseWriter, req *http.Request)
 	GetApiDataCsv(resp http.ResponseWriter, req *http.Request)
-	PostWorkerPoolCSVFile(resp http.ResponseWriter, req *http.Request)
+	//GetCSVFileDataWorkerPool(resp http.ResponseWriter, req *http.Request)
 }
 
-type controller struct{}
+type controller struct {
+	csvService serviceCsv
+}
 
-var csvService service.CsvService
+type serviceCsv interface {
+	ReadCsvData() (*entity.ResponseBody, error)
+	GenerateCsv() (*entity.ResponseBody, error)
+	ReadCsvWorkerPool(idType string, items, items_per_workers int) (entity.ResponseBody, error)
+}
 
-func NewCsvController(service service.CsvService) CSVController {
-	csvService = service
-	return &controller{}
+func NewCsvController(service serviceCsv) CSVController {
+	return &controller{
+		service,
+	}
 }

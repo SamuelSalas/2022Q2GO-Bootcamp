@@ -11,11 +11,11 @@ import (
 )
 
 func Router(router *mux.Router) {
-	csvController := controller.NewCsvController(service.NewCsvService(repository.NewCharacterClientRepository()))
+	csvController := controller.NewCsvController(service.NewCsvService(repository.NewCsvRepository()))
 	router.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		fmt.Fprintln(resp, "Up and running...")
 	}).Methods("GET")
 	router.HandleFunc("/generateCsv", csvController.GetApiDataCsv).Methods("GET")
-	router.HandleFunc("/sendCSVFile", csvController.PostCSVFile).Methods("POST")
-	router.HandleFunc("/sendCSVFileWorkerPool", csvController.PostWorkerPoolCSVFile).Methods("POST")
+	router.HandleFunc("/readCsvFile", csvController.GetCSVFileData).Methods("GET")
+	//router.HandleFunc("/readCsvFileWorkerPool", csvController.PostWorkerPoolCSVFile).Methods("GET")
 }

@@ -2,18 +2,24 @@ package service
 
 import (
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
-	"github.com/SamuelSalas/2022Q2GO-Bootcamp/repository"
 )
 
 type CsvService interface {
-	ReadCsvData(data [][]string) (*entity.ResponseBody, error)
-	GenerateCsv() error
-	ReadCsvWorkerPool(data [][]string, idType string, items, items_per_workers int) (*entity.ResponseBody, error)
+	ReadCsvData() (*entity.ResponseBody, error)
+	GenerateCsv() (*entity.ResponseBody, error)
+	ReadCsvWorkerPool(idType string, items, items_per_workers int) (entity.ResponseBody, error)
 }
 type csvService struct {
-	repo repository.CharacterClientRepository
+	csvRepo csvRepository
 }
 
-func NewCsvService(repository repository.CharacterClientRepository) CsvService {
-	return &csvService{repository}
+type csvRepository interface {
+	FindCharacters() (*entity.ResponseBody, error)
+	ExtractCsvData() (*[][]string, error)
+}
+
+func NewCsvService(csvRepo csvRepository) CsvService {
+	return &csvService{
+		csvRepo,
+	}
 }
