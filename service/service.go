@@ -7,7 +7,7 @@ import (
 type CsvService interface {
 	ReadCsvData() (*entity.ResponseBody, error)
 	GenerateCsv() (*entity.ResponseBody, error)
-	ReadCsvWorkerPool(idType string, items, items_per_workers int) (entity.ResponseBody, error)
+	ReadCsvWorkerPool(idType string, items, items_per_workers int) (*entity.ResponseBody, error)
 }
 
 type csvService struct {
