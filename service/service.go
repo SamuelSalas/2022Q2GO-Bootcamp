@@ -9,6 +9,7 @@ type CsvService interface {
 	GenerateCsv() (*entity.ResponseBody, error)
 	ReadCsvWorkerPool(idType string, items, items_per_workers int) (entity.ResponseBody, error)
 }
+
 type csvService struct {
 	csvRepo csvRepository
 }

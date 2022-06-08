@@ -15,7 +15,7 @@ type Result struct {
 }
 
 type Job struct {
-	ID     int
+	TaskId int
 	ExecFn func(ctx context.Context, workerId int, csvRow [][]string) (entity.Character, error)
 	Args   [][]string
 }
@@ -37,7 +37,7 @@ func NewWorkerPool(wcount, itemPerWorker int) WorkerPool {
 }
 
 func (j Job) execute(ctx context.Context) Result {
-	value, err := j.ExecFn(ctx, j.ID, j.Args)
+	value, err := j.ExecFn(ctx, j.TaskId, j.Args)
 	if err != nil {
 		return Result{
 			Err: err,
@@ -94,27 +94,26 @@ func testJobs(poolSize int, data [][]string) []Job {
 	jobs := make([]Job, poolSize)
 	for i := 0; i < poolSize; i++ {
 		jobs[i] = Job{
-			ID:     i,
+			TaskId: i,
 			ExecFn: execFn,
 			Args:   data,
 		}
+
 	}
+
 	return jobs
 }
 
-func execFn(ctx context.Context, workerId int, csvRow [][]string) (entity.Character, error) {
-	if workerId == 0 {
-
-	}
+func execFn(ctx context.Context, taskId int, csvRow [][]string) (entity.Character, error) {
 	result := entity.Character{}
 	var err error
-	result.ID, _ = strconv.Atoi(csvRow[workerId][0])
-	result.Name = csvRow[workerId][1]
-	result.Status = csvRow[workerId][2]
-	result.Gender = csvRow[workerId][3]
-	result.Image = csvRow[workerId][4]
-	result.Url = csvRow[workerId][5]
-	result.Created = csvRow[workerId][6]
+	result.ID, _ = strconv.Atoi(csvRow[taskId][0])
+	result.Name = csvRow[taskId][1]
+	result.Status = csvRow[taskId][2]
+	result.Gender = csvRow[taskId][3]
+	result.Image = csvRow[taskId][4]
+	result.Url = csvRow[taskId][5]
+	result.Created = csvRow[taskId][6]
 	return result, err
 }
 
@@ -129,10 +128,12 @@ func (s *csvService) ReadCsvWorkerPool(idType string, items, itemsWorkerLimit in
 		return responseBody, err.ErrorCsvEmpty
 	}
 
+	processedData := mapData(idType, data)
+
 	wp := NewWorkerPool(5, itemsWorkerLimit)
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
-	go wp.GenerateFrom(testJobs(items, *data))
+	go wp.GenerateFrom(testJobs(items, *processedData))
 	go wp.Run(ctx)
 
 	select {
@@ -143,4 +144,24 @@ func (s *csvService) ReadCsvWorkerPool(idType string, items, itemsWorkerLimit in
 	default:
 	}
 	return responseBody, errs
+}
+
+func mapData(idType string, data *[][]string) *[][]string {
+	id := 0
+	result := [][]string{}
+	for _, row := range *data {
+		id, _ = strconv.Atoi(row[0])
+		if idType == "odd" {
+			if id%2 == 1 {
+				result = append(result, row)
+			}
+		}
+
+		if idType == "even" {
+			if id%2 == 0 {
+				result = append(result, row)
+			}
+		}
+	}
+	return &result
 }

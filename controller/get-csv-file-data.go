@@ -10,11 +10,11 @@ import (
 
 func (c *controller) GetCSVFileData(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Set("Content-type", "application/json")
-	result, err := c.csvService.ReadCsvData()
-	if err != nil {
-		log.Println(err)
+	result, errs := c.csvService.ReadCsvData()
+	if errs != nil {
+		log.Println(errs)
 		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: err.Error()})
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: errs.Error()})
 		return
 	}
 

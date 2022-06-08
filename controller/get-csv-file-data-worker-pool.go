@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -13,43 +14,49 @@ func (c *controller) GetCSVFileDataWorkerPool(resp http.ResponseWriter, req *htt
 	resp.Header().Set("Content-type", "application/json")
 	itemsParam, ok := req.URL.Query()["items"]
 	if !ok || len(itemsParam[0]) < 1 {
+		log.Println(err.ErrorParameterNotFound)
 		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: err.ErrorParameterNotFound.Error()})
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: err.ErrorParameterNotFound.Error()})
 		return
 	}
 
 	items, errs := strconv.Atoi(itemsParam[0])
 	if errs != nil {
+		log.Println(errs)
 		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: err.ErrorInvalidValueType.Error()})
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: err.ErrorInvalidValueType.Error()})
 		return
 	}
 
 	itemsPerWorkerParam, ok := req.URL.Query()["items_per_worker"]
 	if !ok || len(itemsPerWorkerParam[0]) < 1 {
+		log.Println(errs)
 		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: err.ErrorParameterNotFound.Error()})
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: err.ErrorParameterNotFound.Error()})
 		return
 	}
 
 	itemsPerWorker, errs := strconv.Atoi(itemsPerWorkerParam[0])
 	if errs != nil {
+		log.Println(errs)
 		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: err.ErrorInvalidValueType.Error()})
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: err.ErrorInvalidValueType.Error()})
 		return
 	}
 
 	idTypeParam, ok := req.URL.Query()["id_type"]
 	if !ok || len(idTypeParam[0]) < 1 {
+		log.Println(errs)
 		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: err.ErrorParameterNotFound.Error()})
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: err.ErrorParameterNotFound.Error()})
 		return
 	}
 
 	result, errs := c.csvService.ReadCsvWorkerPool(idTypeParam[0], items, itemsPerWorker)
 	if errs != nil {
+		log.Println(errs)
 		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: errs.Error()})
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: errs.Error()})
 		return
 	}
 

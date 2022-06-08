@@ -14,7 +14,7 @@ func (c *controller) GetApiDataCsv(resp http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		log.Println(err)
 		resp.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(resp).Encode(entity.Message{Message: err.Error()})
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: err.Error()})
 		return
 	}
 
