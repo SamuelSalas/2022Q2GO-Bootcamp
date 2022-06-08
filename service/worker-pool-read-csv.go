@@ -16,8 +16,8 @@ type Result struct {
 
 type Job struct {
 	TaskId int
-	ExecFn func(ctx context.Context, workerId int, csvRow [][]string) (entity.Character, error)
-	Args   [][]string
+	ExecFn func(ctx context.Context, csvRow []string) (entity.Character, error)
+	Args   []string
 }
 
 type WorkerPool struct {
@@ -37,7 +37,7 @@ func NewWorkerPool(wcount, itemPerWorker int) WorkerPool {
 }
 
 func (j Job) execute(ctx context.Context) Result {
-	value, err := j.ExecFn(ctx, j.TaskId, j.Args)
+	value, err := j.ExecFn(ctx, j.Args)
 	if err != nil {
 		return Result{
 			Err: err,
@@ -90,30 +90,48 @@ func (wp WorkerPool) GenerateFrom(jobsBulk []Job) {
 	close(wp.jobs)
 }
 
-func testJobs(poolSize int, data [][]string) []Job {
+func testJobs(idType string, poolSize int, data [][]string) []Job {
 	jobs := make([]Job, poolSize)
-	for i := 0; i < poolSize; i++ {
-		jobs[i] = Job{
-			TaskId: i,
-			ExecFn: execFn,
-			Args:   data,
-		}
+	count := 0
+	id := 0
+	for _, row := range data {
+		for count < poolSize {
+			id, _ = strconv.Atoi(row[0])
+			if idType == "even" {
+				if id%2 == 0 {
+					jobs[count] = Job{
+						ExecFn: execFn,
+						Args:   row,
+					}
+					count++
+				}
+			}
 
+			if idType == "odd" {
+				if id%2 == 1 {
+					jobs[count] = Job{
+						ExecFn: execFn,
+						Args:   row,
+					}
+				}
+			}
+		}
+		break
 	}
 
 	return jobs
 }
 
-func execFn(ctx context.Context, taskId int, csvRow [][]string) (entity.Character, error) {
+func execFn(ctx context.Context, csvRow []string) (entity.Character, error) {
 	result := entity.Character{}
 	var err error
-	result.ID, _ = strconv.Atoi(csvRow[taskId][0])
-	result.Name = csvRow[taskId][1]
-	result.Status = csvRow[taskId][2]
-	result.Gender = csvRow[taskId][3]
-	result.Image = csvRow[taskId][4]
-	result.Url = csvRow[taskId][5]
-	result.Created = csvRow[taskId][6]
+	result.ID, _ = strconv.Atoi(csvRow[0])
+	result.Name = csvRow[1]
+	result.Status = csvRow[2]
+	result.Gender = csvRow[3]
+	result.Image = csvRow[4]
+	result.Url = csvRow[5]
+	result.Created = csvRow[6]
 	return result, err
 }
 
@@ -128,12 +146,10 @@ func (s *csvService) ReadCsvWorkerPool(idType string, items, itemsWorkerLimit in
 		return responseBody, err.ErrorCsvEmpty
 	}
 
-	processedData := mapData(idType, data)
-
 	wp := NewWorkerPool(5, itemsWorkerLimit)
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
-	go wp.GenerateFrom(testJobs(items, *processedData))
+	go wp.GenerateFrom(testJobs(idType, items, *data))
 	go wp.Run(ctx)
 
 	select {
@@ -144,24 +160,4 @@ func (s *csvService) ReadCsvWorkerPool(idType string, items, itemsWorkerLimit in
 	default:
 	}
 	return responseBody, errs
-}
-
-func mapData(idType string, data *[][]string) *[][]string {
-	id := 0
-	result := [][]string{}
-	for _, row := range *data {
-		id, _ = strconv.Atoi(row[0])
-		if idType == "odd" {
-			if id%2 == 1 {
-				result = append(result, row)
-			}
-		}
-
-		if idType == "even" {
-			if id%2 == 0 {
-				result = append(result, row)
-			}
-		}
-	}
-	return &result
 }
