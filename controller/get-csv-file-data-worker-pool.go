@@ -12,6 +12,22 @@ import (
 
 func (c *controller) GetCSVFileDataWorkerPool(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Set("Content-type", "application/json")
+	workersParam, ok := req.URL.Query()["workers"]
+	if !ok || len(workersParam[0]) < 1 {
+		log.Println(err.ErrorParameterNotFound)
+		resp.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: err.ErrorParameterNotFound.Error()})
+		return
+	}
+
+	workers, errs := strconv.Atoi(workersParam[0])
+	if errs != nil {
+		log.Println(errs)
+		resp.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(resp).Encode(entity.ErrorMessage{Message: err.ErrorInvalidValueType.Error()})
+		return
+	}
+
 	itemsParam, ok := req.URL.Query()["items"]
 	if !ok || len(itemsParam[0]) < 1 {
 		log.Println(err.ErrorParameterNotFound)
@@ -52,7 +68,7 @@ func (c *controller) GetCSVFileDataWorkerPool(resp http.ResponseWriter, req *htt
 		return
 	}
 
-	result, errs := c.csvService.ReadCsvWorkerPool(idTypeParam[0], items, itemsPerWorker)
+	result, errs := c.csvService.ReadCsvWorkerPool(idTypeParam[0], workers, items, itemsPerWorker)
 	if errs != nil {
 		log.Println(errs)
 		resp.WriteHeader(http.StatusBadRequest)

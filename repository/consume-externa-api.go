@@ -2,7 +2,6 @@ package repository
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/err"
@@ -19,7 +18,6 @@ func (c *repo) FindCharacters() (*entity.ResponseBody, error) {
 	responseBody := entity.ResponseBody{}
 	errs = json.Unmarshal(resp.Body(), &responseBody)
 	if errs != nil {
-		fmt.Println(errs.Error())
 		return nil, err.ErrorConvertingToJSON
 	}
 

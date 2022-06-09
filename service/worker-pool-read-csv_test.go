@@ -12,15 +12,35 @@ func TestCsvService_WorkerPoolReadCsv(t *testing.T) {
 		testName         string
 		testData         *[][]string
 		idType           string
+		workers          int
 		items            int
 		itemsWorkerLimit int
 		errorResponse    error
 	}{
 		{
-			testName:         "Only Valid Items",
+			testName:         "Odd ID",
 			testData:         &DataCharacters,
 			idType:           "odd",
-			items:            20,
+			workers:          5,
+			items:            8,
+			itemsWorkerLimit: 2,
+			errorResponse:    nil,
+		},
+		{
+			testName:         "Even ID",
+			testData:         &DataCharacters,
+			idType:           "even",
+			workers:          5,
+			items:            8,
+			itemsWorkerLimit: 2,
+			errorResponse:    nil,
+		},
+		{
+			testName:         "Large number of items",
+			testData:         &DataCharacters,
+			idType:           "even",
+			workers:          5,
+			items:            200,
 			itemsWorkerLimit: 2,
 			errorResponse:    nil,
 		},
@@ -31,7 +51,7 @@ func TestCsvService_WorkerPoolReadCsv(t *testing.T) {
 			csvServiceMockImpl := CsvServiceMock{}
 			csvServiceMockImpl.On("ExtractCsvData").Return(test.testData, test.errorResponse)
 			csvServiceImpl := NewCsvService(&csvServiceMockImpl)
-			_, err := csvServiceImpl.ReadCsvWorkerPool(test.idType, test.items, test.itemsWorkerLimit)
+			_, err := csvServiceImpl.ReadCsvWorkerPool(test.idType, test.workers, test.items, test.itemsWorkerLimit)
 			assert.Equal(t, err, test.errorResponse)
 		})
 	}

@@ -7,57 +7,29 @@ import (
 	"github.com/SamuelSalas/2022Q2GO-Bootcamp/entity"
 )
 
-type WorkFunc interface {
-	Run()
-}
-
-type GoroutinePool struct {
-	queue chan work
-	wg    sync.WaitGroup
-}
-
-type work struct {
-	fn WorkFunc
-}
-
-func NewGoroutinePool(workerSize, itemsPerWorkers int) *GoroutinePool {
-	gp := &GoroutinePool{
-		queue: make(chan work, itemsPerWorkers),
-	}
-
-	gp.AddWorkers(workerSize)
-	return gp
-}
-
-func (gp *GoroutinePool) Close() {
-	close(gp.queue)
-	gp.wg.Wait()
-}
-
-func (gp *GoroutinePool) ScheduleWork(fn WorkFunc) {
-	gp.queue <- work{fn}
-}
-
-func (gp *GoroutinePool) AddWorkers(numWorkers int) {
-	for i := 0; i < numWorkers; i++ {
-		go func() {
-			gp.wg.Add(1)
-			for job := range gp.queue {
-				job.fn.Run()
-			}
-			gp.wg.Done()
-		}()
-	}
-}
-
 type Job struct {
-	TaskId int
-	ExecFn func(csvRow []string)
+	ExecFn func(csvRow []string) entity.Character
 	Args   []string
 }
 
-func testJobs(idType string, poolSize int, data [][]string, execFn func(csvRow []string)) []Job {
-	jobs := []Job{}
+func worker(w *sync.WaitGroup, job <-chan Job, data chan<- entity.Character) {
+	for c := range job {
+		data <- c.ExecFn(c.Args)
+	}
+	w.Done()
+}
+
+func makeWP(poolSize int, job <-chan Job, data chan<- entity.Character) {
+	var w sync.WaitGroup
+	for i := 0; i < poolSize; i++ {
+		w.Add(1)
+		go worker(&w, job, data)
+	}
+	w.Wait()
+	close(data)
+}
+
+func create(idType string, poolSize int, data [][]string, jobs chan<- Job, execFn func(csvRow []string) entity.Character) {
 	count := 0
 	id := 0
 	for _, row := range data {
@@ -65,64 +37,62 @@ func testJobs(idType string, poolSize int, data [][]string, execFn func(csvRow [
 			id, _ = strconv.Atoi(row[0])
 			if idType == "even" {
 				if id%2 == 0 {
-					jobs = append(jobs, Job{
+					j := Job{
 						ExecFn: execFn,
 						Args:   row,
-					})
-					count++
+					}
+					jobs <- j
 				}
 			}
 
 			if idType == "odd" {
 				if id%2 == 1 {
-					jobs = append(jobs, Job{
+					j := Job{
 						ExecFn: execFn,
 						Args:   row,
-					})
-					count++
+					}
+					jobs <- j
 				}
 			}
+
 		}
 	}
 
-	return jobs
+	close(jobs)
 }
 
-func (t Job) Run() {
-	t.ExecFn(t.Args)
-}
-
-func (s *csvService) ReadCsvWorkerPool(idType string, items, itemsWorkerLimit int) (*entity.ResponseBody, error) {
-	data, errs := s.csvRepo.ExtractCsvData()
+func (s *csvService) ReadCsvWorkerPool(idType string, workers, items, itemsWorkerLimit int) (*entity.ResponseBody, error) {
+	csv, errs := s.csvRepo.ExtractCsvData()
 	if errs != nil {
 		return nil, errs
 	}
 
 	responseBody := entity.ResponseBody{}
-	wp := NewGoroutinePool(5, itemsWorkerLimit)
-	wg := &sync.WaitGroup{}
+	jobs := make(chan Job, itemsWorkerLimit)
+	characters := make(chan entity.Character, itemsWorkerLimit)
 
-	sampleStringTaskFn := func(csvRow []string) {
-		result := entity.Character{}
-		result.ID, _ = strconv.Atoi(csvRow[0])
-		result.Name = csvRow[1]
-		result.Status = csvRow[2]
-		result.Gender = csvRow[3]
-		result.Image = csvRow[4]
-		result.Url = csvRow[5]
-		result.Created = csvRow[6]
-		responseBody.Results = append(responseBody.Results, result)
-		wg.Done()
+	sampleStringTaskFn := func(csvRow []string) entity.Character {
+		character := entity.Character{}
+		character.ID, _ = strconv.Atoi(csvRow[0])
+		character.Name = csvRow[1]
+		character.Status = csvRow[2]
+		character.Gender = csvRow[3]
+		character.Image = csvRow[4]
+		character.Url = csvRow[5]
+		character.Created = csvRow[6]
+		return character
 	}
 
-	tasks := testJobs(idType, items, *data, sampleStringTaskFn)
-	for _, task := range tasks {
-		wg.Add(1)
-		wp.ScheduleWork(task)
-	}
+	go create(idType, items, *csv, jobs, sampleStringTaskFn)
+	finished := make(chan interface{})
+	go func() {
+		for d := range characters {
+			responseBody.Results = append(responseBody.Results, d)
+		}
+		finished <- true
+	}()
 
-	wp.Close()
-	wg.Wait()
-
+	makeWP(workers, jobs, characters)
+	<-finished
 	return &responseBody, nil
 }
